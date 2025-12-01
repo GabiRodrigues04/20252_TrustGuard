@@ -5,10 +5,42 @@ import roboMascote from "@/assets/img/mascote-trustguard.png";
 
 export default function IA() {
   const [expandedFaq, setExpandedFaq] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const toggleFaq = (index) => {
     setExpandedFaq(expandedFaq === index ? null : index);
   };
+
+  async function handleSend() {
+    if (!input.trim()) return;
+
+    const userMessage = { from: "user", text: input };
+    setMessages((prev) => [...prev, userMessage]);
+
+    setLoading(true);
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/ai/ask-assistant?question=${encodeURIComponent(String(input))}`
+      );
+
+      const data = await response.text();
+
+      const botMessage = { from: "bot", text: data };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      const botMessage = {
+        from: "bot",
+        text: "Ocorreu um erro ao conectar com o servidor.",
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    }
+
+    setInput("");
+    setLoading(false);
+  }
 
   const faqItems = [
     {
@@ -69,29 +101,57 @@ export default function IA() {
         </section>
 
         <section className="py-16 bg-gray-100 border-b border-gray-200">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-red-600">
-              Fale com Bradinho
-            </h2>
-            <div className="bg-white rounded-lg shadow-md p-6 flex flex-col h-[500px]">
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4 border border-gray-200 rounded-lg p-4 flex items-center justify-center">
+        <div className="container mx-auto px-4 max-w-2xl">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-red-600">
+            Fale com Bradinho
+          </h2>
+
+          <div className="bg-white rounded-lg shadow-md p-6 flex flex-col h-[600px]">
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 border border-gray-200 rounded-lg p-4">
+              {messages.length === 0 ? (
                 <p className="text-gray-500 text-center">
                   Envie uma mensagem para começar a conversa.
                 </p>
-              </div>
+              ) : (
+                messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg max-w-[80%] ${
+                      msg.from === "user"
+                        ? "bg-red-600 text-white self-end ml-auto"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                ))
+              )}
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Digite sua dúvida aqui..."
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"/>
-                <Button className="bg-red-600 hover:bg-red-700 text-white">
-                  Enviar
-                </Button>
-              </div>
+              {loading && (
+                <p className="text-gray-400 italic text-sm">Bradinho está pensando...</p>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Digite sua dúvida aqui..."
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+              <Button
+                onClick={handleSend}
+                disabled={loading}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Enviar
+              </Button>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
+
 
         <section className="py-16 bg-white">
           <div className="container mx-auto px-4 max-w-2xl">
